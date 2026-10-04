@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Journal — Atelier</title>
+  <link rel="icon" href="/assets/favicon.svg" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;1,9..144,500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
+  <style>
+    .article{max-width:760px;margin:0 auto;padding:140px 20px 40px}
+    .article .back{color:var(--muted);font-size:14px;font-weight:600}
+    .article .back:hover{color:var(--coral)}
+    .article-tag{color:var(--coral);font-weight:700;letter-spacing:.14em;text-transform:uppercase;font-size:12px;margin:26px 0 14px;display:block}
+    .article h1{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5vw,54px);line-height:1.05;margin-bottom:16px}
+    .article-meta{color:var(--faint);font-size:14px;margin-bottom:32px}
+    .article-cover{border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);margin-bottom:40px}
+    .article-body{font-size:18px;color:#d8d8de;line-height:1.8}
+    .article-body h2{font-family:var(--serif);font-weight:500;font-size:28px;margin:36px 0 14px;color:var(--text)}
+    .article-body p{margin-bottom:22px}
+    .article-body blockquote{border-left:3px solid var(--coral);padding:6px 0 6px 22px;margin:28px 0;font-family:var(--serif);font-style:italic;font-size:22px;color:var(--text)}
+    .article-body img{border-radius:10px;margin:24px 0}
+    .article-body a{color:var(--coral);text-decoration:underline}
+    .article-foot{margin-top:56px;padding-top:28px;border-top:1px solid var(--line);display:flex;justify-content:space-between;align-items:center}
+  </style>
+</head>
+<body>
+  <div class="scroll-progress" id="scrollProgress"></div>
+  <header class="nav scrolled" id="nav">
+    <a href="/#top" class="brand" data-bind="brand">ATELIER</a>
+    <nav class="nav-links">
+      <a href="/#portfolio">Work</a><a href="/#gallery">Gallery</a>
+      <a href="/#journal">Journal</a><a href="/#contact" class="nav-cta">Let's talk</a>
+    </nav>
+  </header>
+
+  <article class="article" id="article">
+    <a class="back" href="/#journal">← Back to Journal</a>
+    <div id="postContent"><p style="color:var(--muted);margin-top:40px">Loading…</p></div>
+  </article>
+
+  <footer class="footer">
+    <div class="footer-bottom">
+      <span>© <span id="year"></span> <span data-bind="brand">Atelier</span>. All rights reserved.</span>
+      <a href="/admin">Admin</a>
+    </div>
+  </footer>
+
+  <script>
+    const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // scroll progress
+    addEventListener('scroll', () => {
+      const h = document.documentElement;
+      document.getElementById('scrollProgress').style.width = (h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+    }, {passive:true});
+
+    fetch('/api/settings').then(r=>r.json()).then(s=>{
+      document.querySelectorAll('[data-bind]').forEach(el=>{ if(s[el.dataset.bind]) el.textContent = s[el.dataset.bind]; });
+      if (s.accent) document.documentElement.style.setProperty('--coral', s.accent);
+    }).catch(()=>{});
+
+    const slug = location.pathname.split('/blog/')[1] || new URLSearchParams(location.search).get('slug');
+    fetch('/api/posts/' + encodeURIComponent(slug)).then(r=>{
+      if(!r.ok) throw new Error('Post not found');
+      return r.json();
+    }).then(p=>{
+      document.title = p.title + ' — Journal';
+      const date = new Date(p.created_at).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+      const tag = (p.tags||'').split(',')[0].trim();
+      document.getElementById('postContent').innerHTML = `
+        ${tag?`<span class="article-tag">${esc(tag)}</span>`:''}
+        <h1>${esc(p.title)}</h1>
+        <div class="article-meta">By ${esc(p.author)} · ${date}</div>
+        ${p.cover_image?`<div class="article-cover"><img src="${esc(p.cover_image)}" alt="${esc(p.title)}"></div>`:''}
+        <div class="article-body">${p.content}</div>
+        <div class="article-foot"><a class="back" href="/#journal">← Back to Journal</a><a class="back" href="/#contact">Start a project →</a></div>`;
+    }).catch(()=>{
+      document.getElementById('postContent').innerHTML =
+        '<h1 style="margin-top:40px">Post not found</h1><p style="color:var(--muted)">This article may have been unpublished. <a href="/#journal" style="color:var(--coral)">Back to Journal</a></p>';
+    });
+  </script>
+</body>
+</html>

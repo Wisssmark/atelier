@@ -1,0 +1,20 @@
+# Render deployment blueprint for Atelier (FREE tier — for testing the live look).
+# NOTE: Render's free instances have a temporary filesystem, so the SQLite
+# database resets on every restart/redeploy. Great for previewing the site;
+# upgrade to a paid "starter" plan + a disk when you want content to persist.
+services:
+  - type: web
+    name: atelier
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true     # Render generates a strong signing secret
+      - key: ADMIN_USERNAME
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false             # you set this privately in the Render dashboard
